@@ -11,6 +11,7 @@ help::
 		"  bootstrap          Generate a skeleton of an OTP application" \
 		"  bootstrap-lib      Generate a skeleton of an OTP library" \
 		"  bootstrap-rel      Generate the files needed to build a release" \
+		"  bootstrap-docker   Generate the files needed to build a container" \
 		"  new-app in=NAME    Create a new local OTP application NAME" \
 		"  new-lib in=NAME    Create a new local OTP library NAME" \
 		"  new t=TPL n=NAME   Generate a module NAME based on the template TPL" \
@@ -108,6 +109,35 @@ define bs_vm_args
 -name $p@127.0.0.1
 -setcookie $p
 -heart
+endef
+
+define bs_dockerfile
+FROM $(from)
+
+ARG REL_NAME
+ARG REL_VSN=1
+ARG ERTS_VSN
+
+ENV BINDIR /erts-$v/bin
+ENV BOOT /releases/1/$p_release
+ENV CONFIG /releases/1/sys.config
+ENV ARGS_FILE /releases/1/vm.args
+
+ENV TZ=GMT
+
+ENTRYPOINT exec $${BINDIR}/erlexec \
+	-boot_var /lib \
+	-boot $${BOOT} \
+	-noinput \
+	-config $${CONFIG} \
+	-args_file $${ARGS_FILE}
+
+ADD _rel/$p_release/ /
+endef
+
+define system_info_version.erl
+	io:format("~s", [erlang:system_info(version)]),
+	halt(0).
 endef
 
 # Normal templates.
@@ -405,6 +435,20 @@ endif
 	$(verbose) mkdir rel/
 	$(call render_template,bs_sys_config,rel/sys.config)
 	$(call render_template,bs_vm_args,rel/vm.args)
+
+bootstrap-docker:
+ifneq ($(wildcard Dockerfile),)
+	$(error Error: Dockerfile already exists)
+endif
+ifeq ($(wildcard relx.config),)
+	$(error Error: relx.config does not exist)
+endif
+ifndef from
+	$(eval from := scratch)
+endif
+	$(eval p := $(PROJECT))
+	$(eval v := $(shell $(call erlang,$(system_info_version.erl))))
+	$(call render_template,bs_dockerfile,Dockerfile)
 
 new-app:
 ifndef in
