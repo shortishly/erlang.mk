@@ -16,7 +16,7 @@
 
 ERLANG_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
 
-ERLANG_MK_VERSION = 2.0.0-pre.2-108-gc77b142-dirty
+ERLANG_MK_VERSION = 2.0.0-pre.2-109-gfaf8a57-dirty
 
 # Core configuration.
 
@@ -6601,7 +6601,7 @@ endif # ifneq ($(COVER_REPORT_DIR),)
 # Copyright (c) 2016, Peter Morgan <peter.james.morgan@gmail.com>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
-.PHONY: docker-build docker-run
+.PHONY: docker-build docker-logs docker-run
 .PHONY: docker-scratch-cp-dynamic-libs docker-scratch-cp-link-loader docker-scratch-cp-sh
 
 # Configuration.
@@ -6641,3 +6641,6 @@ docker-rm:
 
 docker-run: docker-rm
 	$(gen_verbose) docker run --name $(RELX_RELEASE) -d $(RELX_RELEASE):$(PROJECT_VERSION)
+
+docker-logs:
+	$(gen_verbose) docker logs $(RELX_RELEASE)
