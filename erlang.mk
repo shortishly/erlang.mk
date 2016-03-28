@@ -16,7 +16,7 @@
 
 ERLANG_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
 
-ERLANG_MK_VERSION = 2.0.0-pre.2-107-g1fee577-dirty
+ERLANG_MK_VERSION = 2.0.0-pre.2-108-gc77b142-dirty
 
 # Core configuration.
 
@@ -6621,7 +6621,7 @@ endif
 docker-scratch-cp-dynamic-libs:
 	$(gen_verbose) for lib in $$(ldd $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)/erts-*/bin/*|grep "=>"|awk '{print $$3}'|sort|uniq); do \
 	    mkdir -p $$(dirname $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)$$lib); \
-	    cp -Lv $$lib $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)$$lib; \
+	    cp -L $$lib $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)$$lib; \
 	done
 
 docker-scratch-cp-link-loader:
@@ -6630,11 +6630,14 @@ docker-scratch-cp-link-loader:
 docker-scratch-cp-sh:
 	$(gen_verbose) cp /bin/sh $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)/bin
 
-docker-build: relx-rel docker-scratch-cp-dynamic-libs docker-scratch-cp-link-loader docker-scratch-cp-sh
-	$(gen_verbose) docker build -t $(RELX_RELEASE):$(PROJECT_VERSION) .
+docker-strip-erts-binaries:
+	-$(gen_verbose) strip $$(file _rel/*/erts-*/bin/*|grep "not stripped"|awk '{print $$1}'|cut -d: -f1) &>/dev/null
+
+docker-build: relx-rel docker-scratch-cp-dynamic-libs docker-scratch-cp-link-loader docker-scratch-cp-sh docker-strip-erts-binaries
+	$(gen_verbose) docker build --quiet --tag $(RELX_RELEASE):$(PROJECT_VERSION) .
 
 docker-rm:
-	-$(gen_verbose) docker rm -f $(RELX_RELEASE)
+	$(gen_verbose) docker rm -f $(RELX_RELEASE) &>/dev/null || exit 0
 
 docker-run: docker-rm
 	$(gen_verbose) docker run --name $(RELX_RELEASE) -d $(RELX_RELEASE):$(PROJECT_VERSION)
