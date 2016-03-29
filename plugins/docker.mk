@@ -31,7 +31,9 @@ docker-scratch-cp-sh:
 	$(gen_verbose) cp /bin/sh $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)/bin
 
 docker-strip-erts-binaries:
-	$(gen_verbose) which strip &>/dev/null && $$(file _rel/*/erts-*/bin/*|grep "not stripped"|awk '{print $$1}'|cut -d: -f1) | xargs strip &>/dev/null
+	$(gen_verbose) for fat in $$(file _rel/*/erts-*/bin/*|grep "not stripped"|awk '{print $$1}'|cut -d: -f1); do \
+		strip $$fat &>/dev/null; \
+	done
 
 docker-build: relx-rel docker-scratch-cp-dynamic-libs docker-scratch-cp-link-loader docker-scratch-cp-sh docker-strip-erts-binaries
 	$(gen_verbose) docker build --quiet --tag $(RELX_RELEASE):$(PROJECT_VERSION) .
