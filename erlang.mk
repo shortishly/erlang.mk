@@ -16,7 +16,7 @@
 
 ERLANG_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
 
-ERLANG_MK_VERSION = 2.0.0-pre.2-111-g3e2f102-dirty
+ERLANG_MK_VERSION = 2.0.0-pre.2-112-g13abc02-dirty
 
 # Core configuration.
 
@@ -6619,7 +6619,7 @@ endif
 # Plugin-specific targets.
 
 docker-scratch-cp-dynamic-libs:
-	$(gen_verbose) for lib in $$(ldd $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)/erts-*/bin/*|grep "=>"|awk '{print $$3}'|sort|uniq); do \
+	$(gen_verbose) for lib in $$(ldd $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)/erts-*/bin/* $$(which sh)|grep "=>"|awk '{print $$3}'|sort|uniq); do \
 	    mkdir -p $$(dirname $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)$$lib); \
 	    cp -L $$lib $(RELX_OUTPUT_DIR)/$(RELX_RELEASE)$$lib; \
 	done
