@@ -16,7 +16,7 @@
 
 ERLANG_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
 
-ERLANG_MK_VERSION = 2.0.0-pre.2-117-g87a7632-dirty
+ERLANG_MK_VERSION = 2.0.0-pre.2-118-gde22065-dirty
 
 # Core configuration.
 
@@ -5313,10 +5313,10 @@ ARG REL_NAME
 ARG REL_VSN=1
 ARG ERTS_VSN
 
-ENV BINDIR /erts-$v/bin
-ENV BOOT /releases/1/$p_release
-ENV CONFIG /releases/1/sys.config
-ENV ARGS_FILE /releases/1/vm.args
+ENV BINDIR /erts-$${ERTS_VSN}/bin
+ENV BOOT /releases/$${REL_VSN}/$p_release
+ENV CONFIG /releases/$${REL_VSN}/sys.config
+ENV ARGS_FILE /releases/$${REL_VSN}/vm.args
 
 ENV TZ=GMT
 
@@ -5328,11 +5328,6 @@ ENTRYPOINT exec $${BINDIR}/erlexec \
 	-args_file $${ARGS_FILE}
 
 ADD _rel/$p_release/ /
-endef
-
-define system_info_version.erl
-	io:format("~s", [erlang:system_info(version)]),
-	halt(0).
 endef
 
 # Normal templates.
@@ -5642,7 +5637,6 @@ ifndef from
 	$(eval from := scratch)
 endif
 	$(eval p := $(PROJECT))
-	$(eval v := $(shell $(call erlang,$(system_info_version.erl))))
 	$(call render_template,bs_dockerfile,Dockerfile)
 
 new-app:
