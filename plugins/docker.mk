@@ -9,6 +9,7 @@ DOCKERFILE ?= $(CURDIR)/Dockerfile
 
 # Core targets.
 
+ifeq ($(shell which docker 2>/dev/null | wc -l), 1)
 ifeq ($(IS_DEP),)
 ifneq ($(wildcard $(DOCKERFILE)),)
 ifneq ($(PLATFORM),darwin)
@@ -55,3 +56,5 @@ docker-run: docker-rm
 
 docker-logs:
 	$(gen_verbose) docker logs $(RELX_RELEASE)
+
+endif
