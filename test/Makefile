@@ -1,4 +1,4 @@
-# Copyright (c) 2015, Loïc Hoguin <essen@ninenines.eu>
+# Copyright (c) 2015-2016, Loïc Hoguin <essen@ninenines.eu>
 # Copyright (c) 2014, Viktor Söderqvist <viktor@zuiderkwast.se>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
@@ -174,7 +174,7 @@ core-help: build clean
 # Packages.
 
 PACKAGES = $(foreach pkg,$(sort $(wildcard ../index/*.mk)),$(notdir $(basename $(pkg))))
-EXCLUDE_FROM_CHECK = [rabbitmq_codegen]
+EXCLUDE_FROM_CHECK = [hexer_mk, inaka_mk, rabbitmq_codegen]
 
 packages: $(addprefix pkg-,$(PACKAGES))
 

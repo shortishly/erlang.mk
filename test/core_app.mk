@@ -1,6 +1,6 @@
 # Core: Building applications.
 
-CORE_APP_CASES = appsrc-change asn1 auto-git-id erlc-exclude erlc-opts erlc-opts-filter error generate-erl generate-erl-include generate-erl-prepend hrl hrl-recursive makefile-change mib no-app no-makedep pt pt-erlc-opts xrl xrl-include yrl yrl-include
+CORE_APP_CASES = appsrc-change asn1 auto-git-id env erlc-exclude erlc-opts erlc-opts-filter error extra-keys generate-erl generate-erl-include generate-erl-prepend hrl hrl-recursive makefile-change mib name-special-char no-app no-makedep project-mod pt pt-erlc-opts xrl xrl-include yrl yrl-header yrl-include
 CORE_APP_TARGETS = $(addprefix core-app-,$(CORE_APP_CASES))
 
 .PHONY: core-app $(CORE_APP_TARGETS)
@@ -149,6 +149,21 @@ endif
 		[{module, M} = code:load_file(M) || M <- Mods], \
 		halt()"
 
+	$i "Clean the application"
+	$t $(MAKE) -C $(APP) clean $v
+
+	$i "Build the application with ERLC_ASN1_OPTS set"
+	$t echo "ERLC_ASN1_OPTS += +'{record_name_prefix,\"FOO-\"}'" >> $(APP)/Makefile
+	$t $(MAKE) -C $(APP) $v
+
+	$i "Check that the application was built with ERLC_ASN1_OPTS set"
+	$t $(ERL) -pa $(APP)/ebin/ -eval " \
+	  Attrs = 'Def':module_info(attributes), \
+		Asn1Info = proplists:get_value(asn1_info, Attrs), \
+		Opts = proplists:get_value(options, Asn1Info), \
+		true = lists:member({record_name_prefix, \"FOO-\"}, Opts), \
+		halt()"
+
 core-app-auto-git-id: build clean
 
 	$i "Bootstrap a new OTP library named $(APP)"
@@ -196,6 +211,40 @@ endif
 		{ok, ID} = application:get_key($(APP), id), \
 		true = ID =/= [], \
 		halt()"
+
+ifndef LEGACY
+core-app-env: build clean
+
+	$i "Bootstrap a new OTP library named $(APP)"
+	$t mkdir $(APP)/
+	$t cp ../erlang.mk $(APP)/
+	$t $(MAKE) -C $(APP) -f erlang.mk bootstrap-lib $v
+
+	$i "Define PROJECT_ENV"
+	$t echo "PROJECT_ENV = [{test_key, test_value}]" >> $(APP)/Makefile
+
+	$i "Build the application"
+	$t $(MAKE) -C $(APP) $v
+
+	$i "Check that the application was compiled correctly"
+	$t $(ERL) -pa $(APP)/ebin/ -eval " \
+		ok = application:load($(APP)), \
+		{ok, test_value} = application:get_env($(APP), test_key), \
+		halt()"
+
+	$i "Define PROJECT_ENV with escape in string, special char"
+	$t echo "PROJECT_ENV = [{test_atom, '\\\$$\$$test'}, {test_key, \"\\\"test_\\tvalue\\\"\"}]" >> $(APP)/Makefile
+
+	$i "Build the application"
+	$t $(MAKE) -C $(APP) $v
+
+	$i "Check that the application was compiled correctly"
+	$t $(ERL) -pa $(APP)/ebin/ -eval " \
+		ok = application:load($(APP)), \
+		{ok, \"\\\"test_\\tvalue\\\"\"} = application:get_env($(APP), test_key), \
+		{ok, '\\\$$test'} = application:get_env($(APP), test_atom), \
+		halt()"
+endif
 
 core-app-erlc-exclude: build clean
 
@@ -295,6 +344,47 @@ core-app-error: build clean
 
 	$i "Check that trying to build returns non-zero"
 	$t ! $(MAKE) -C $(APP) $v
+
+ifndef LEGACY
+core-app-extra-keys: build clean
+
+	$i "Bootstrap a new OTP library named $(APP)"
+	$t mkdir $(APP)/
+	$t cp ../erlang.mk $(APP)/
+	$t $(MAKE) -C $(APP) -f erlang.mk bootstrap-lib $v
+
+	$i "Define PROJECT_APP_EXTRA_KEYS"
+	$t printf "define PROJECT_APP_EXTRA_KEYS\n\t{maxT, 10000},\n\t{non_standard_key, test_value}\nendef\n" >> $(APP)/Makefile
+
+	$i "Build the application"
+	$t $(MAKE) -C $(APP) $v
+
+	$i "Check that the application was compiled correctly"
+	$t $(ERL) -pa $(APP)/ebin/ -eval " \
+		ok = application:load($(APP)), \
+		{ok, 10000} = application:get_key($(APP), maxT), \
+		AppFile = filename:join(code:lib_dir($(APP), ebin), atom_to_list($(APP)) ++ \".app\"), \
+		{ok, [App]} = file:consult(AppFile), \
+		{application, $(APP), Props} = App, \
+		test_value = proplists:get_value(non_standard_key, Props),\
+		halt()"
+
+	$i "Define PROJECT_APP_EXTRA_KEYS with escape in string, special char"
+	$t echo "PROJECT_APP_EXTRA_KEYS = {non_standard_atom, '\\\$$\$$my_app'}, {non_standard_string, \"\\\"test_\\tvalue\\\"\"}" >> $(APP)/Makefile
+
+	$i "Build the application"
+	$t $(MAKE) -C $(APP) $v
+
+	$i "Check that the application was compiled correctly"
+	$t $(ERL) -pa $(APP)/ebin/ -eval " \
+		ok = application:load($(APP)), \
+		AppFile = filename:join(code:lib_dir($(APP), ebin), atom_to_list($(APP)) ++ \".app\"), \
+		{ok, [App]} = file:consult(AppFile), \
+		{application, $(APP), Props} = App, \
+		'\\\$$my_app' = proplists:get_value(non_standard_atom, Props),\
+		\"\\\"test_\\tvalue\\\"\" = proplists:get_value(non_standard_string, Props),\
+		halt()"
+endif
 
 core-app-generate-erl: build clean
 
@@ -775,7 +865,7 @@ core-app-makefile-change: build clean
 	$t touch $(APP)/Makefile
 	$t $(SLEEP)
 	$t $(MAKE) -C $(APP) $v
-	$t find $(APP) -type f -newer $(APP)/Makefile | sort | diff $(APP)/EXPECT -
+	$t find $(APP) -type f -newer $(APP)/Makefile -not -path "$(APP)/.erlang.mk/*" | sort | diff $(APP)/EXPECT -
 	$t rm $(APP)/EXPECT
 
 core-app-mib: build clean
@@ -885,6 +975,27 @@ endif
 			= application:get_key($(APP), modules), \
 		[{module, M} = code:load_file(M) || M <- Mods], \
 		halt()"
+
+ifndef LEGACY
+core-app-name-special-char: build clean
+
+	$i "Bootstrap a new OTP library named $(APP)"
+	$t mkdir $(APP)/
+	$t cp ../erlang.mk $(APP)/
+	$t $(MAKE) -C $(APP) -f erlang.mk bootstrap-lib $v
+
+	$i "Set PROJECT_DESCRIPTION = test % in the Makefile"
+	$t echo "PROJECT_DESCRIPTION = test %" >> $(APP)/Makefile
+
+	$i "Build the application"
+	$t $(MAKE) -C $(APP) $v
+
+	$i "Check that the application was compiled correctly"
+	$t $(ERL) -pa $(APP)/ebin/ -eval " \
+		ok = application:load($(APP)), \
+		{ok,\"test %\"} = application:get_key($(APP), description), \
+		halt()"
+endif
 
 core-app-no-app: build clean
 
@@ -1010,6 +1121,26 @@ endif
 		[{module, M} = code:load_file(M) || M <- Mods], \
 		halt()"
 
+core-app-project-mod: build clean
+
+	$i "Bootstrap a new OTP library named $(APP)"
+	$t mkdir $(APP)/
+	$t cp ../erlang.mk $(APP)/
+	$t $(MAKE) -C $(APP) -f erlang.mk bootstrap-lib $v
+
+	$i "Generate an application module"
+	$t printf "%s\n" \
+		"-module(app_mod)." \
+		"-export([start/2, stop/1])." \
+		"start(_StartType, _StartArgs) -> {ok, self()}." \
+		"stop(_State) -> ok." > $(APP)/src/app_mod.erl
+
+	$i "Build the application with PROJECT_MOD"
+	$t $(MAKE) -C $(APP) PROJECT_MOD=app_mod $v
+
+	$i "Check that the application starts correctly"
+	$t $(ERL) -pa $(APP)/ebin/ -eval "ok = application:start($(APP)), halt()"
+
 core-app-pt: build clean
 
 	$i "Bootstrap a new OTP library named $(APP)"
@@ -1022,7 +1153,7 @@ core-app-pt: build clean
 		"-module(my_pt)." \
 		"-export([parse_transform/2])." \
 		"parse_transform(Forms, _) ->" \
-		"	io:format(\"*** Running my_pt parse_transform.~n\")," \
+		"	io:format(\"# Running my_pt parse_transform.~n\")," \
 		"	Forms." > $(APP)/src/my_pt.erl
 
 	$i "Generate a .erl file that uses the my_pt parse_transform"
@@ -1060,7 +1191,7 @@ core-app-pt-erlc-opts: build clean
 		"-module(my_pt)." \
 		"-export([parse_transform/2])." \
 		"parse_transform(Forms, _) ->" \
-		"	io:format(\"*** Running my_pt parse_transform.~n\")," \
+		"	io:format(\"# Running my_pt parse_transform.~n\")," \
 		"	Forms." > $(APP)/deps/my_pt_dep/src/my_pt.erl
 
 	$i "Add my_pt_dep to the list of dependencies"
@@ -1422,6 +1553,72 @@ endif
 	$t $(ERL) -pa $(APP)/ebin/ -eval " \
 		ok = application:start($(APP)), \
 		{ok, Mods = [boy, girl, xmerl_xpath_parse, xref_parser]} \
+			= application:get_key($(APP), modules), \
+		[{module, M} = code:load_file(M) || M <- Mods], \
+		halt()"
+
+core-app-yrl-header: build clean
+
+	$i "Bootstrap a new OTP library named $(APP)"
+	$t mkdir $(APP)/
+	$t cp ../erlang.mk $(APP)/
+	$t $(MAKE) -C $(APP) -f erlang.mk bootstrap-lib $v
+	
+	$i "Create a .yrl file"
+	$t echo "Nonterminals E T F." > $(APP)/src/y_parse.yrl
+	$t echo "Terminals '+' '*' '(' ')' number." >> $(APP)/src/y_parse.yrl
+	$t echo "Rootsymbol E." >> $(APP)/src/y_parse.yrl
+	$t echo "E -> E '+' T: {'\$$2', '\$$1', '\$$3'}." >> $(APP)/src/y_parse.yrl
+	$t echo "E -> T : '\$$1'." >> $(APP)/src/y_parse.yrl
+	$t echo "T -> T '*' F: {'\$$2', '\$$1', '\$$3'}." >> $(APP)/src/y_parse.yrl
+	$t echo "T -> F : '\$$1'." >> $(APP)/src/y_parse.yrl
+	$t echo "F -> '(' E ')' : '\$$2'." >> $(APP)/src/y_parse.yrl
+	$t echo "F -> number : '\$$1'. " >> $(APP)/src/y_parse.yrl
+
+	$i "Create the yrl header file"
+	$t mkdir $(APP)/include
+	$t echo "-export([forty_two/0])." > $(APP)/include/yecc_header.hrl
+# A bunch of gobbldygook we don't actually care about, they just
+# need to exist so we don't get errors.
+	$t echo "-export([yeccpars1/5, yeccerror/1, yeccpars2/7, yeccpars2_0/7, yeccpars2_1/7, yeccpars2_2/7, yeccpars2_3/7, yeccpars2_5/7, yeccpars2_6/7, yeccpars2_7/7, yeccpars2_9/7, yeccpars2_11/7, 'yeccgoto_\'E\''/7, 'yeccgoto_\'F\''/7, 'yeccgoto_\'T\''/7, yeccpars2_9_/1, yeccpars2_11_/1, yeccpars2_7_/1])." >> $(APP)/include/yecc_header.hrl
+	$t echo "yeccpars1(_,_,_,_,_) -> throw(not_implemented)." >> $(APP)/include/yecc_header.hrl
+	$t echo "yeccerror(_) -> throw(not_implemented)." >> $(APP)/include/yecc_header.hrl
+# Required bits done, now part we'll actually test for.
+	$t echo "forty_two() -> 42." >> $(APP)/include/yecc_header.hrl
+
+	$i "Generate unrelated .erl files"
+	$t echo "-module(boy)." > $(APP)/src/boy.erl
+	$t echo "-module(girl)." > $(APP)/src/girl.erl
+
+	$i "Build the application"
+	$t YRL_ERLC_OPTS="-I include/yecc_header.hrl" $(MAKE) -C $(APP) $v
+
+	$i "Check that all compiled files exist"
+	$t test -f $(APP)/$(APP).d
+	$t test -f $(APP)/ebin/$(APP).app
+	$t test -f $(APP)/ebin/boy.beam
+	$t test -f $(APP)/ebin/girl.beam
+	$t test -f $(APP)/ebin/y_parse.beam
+	$t test -f $(APP)/src/y_parse.erl
+
+	$i "Check that the application was compiled correctly"
+	$t $(ERL) -pa $(APP)/ebin/ -eval " \
+		ok = application:start($(APP)), \
+		{ok, Mods = [boy, girl, y_parse]} \
+			= application:get_key($(APP), modules), \
+		[{module, M} = code:load_file(M) || M <- Mods], \
+		halt()"
+
+	$i "Check the built yecc module used the header"
+	$t $(ERL) -pa $(APP)/ebin/ -eval " \
+		{module, y_parse} = code:load_file(y_parse), \
+		42 = y_parse:forty_two(), \
+		halt()"
+
+	$i "Check that the application was compiled correctly"
+	$t $(ERL) -pa $(APP)/ebin/ -eval " \
+		ok = application:start($(APP)), \
+		{ok, Mods = [boy, girl, y_parse]} \
 			= application:get_key($(APP), modules), \
 		[{module, M} = code:load_file(M) || M <- Mods], \
 		halt()"

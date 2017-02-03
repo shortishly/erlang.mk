@@ -27,14 +27,14 @@ in your Erlang distribution, or even in your OS packages.
 The next step is therefore to download it:
 
 [source,bash]
-$ wget https://raw.githubusercontent.com/ninenines/erlang.mk/master/erlang.mk
+$ wget https://erlang.mk/erlang.mk
 
 Or:
 
 [source,bash]
-$ curl https://raw.githubusercontent.com/ninenines/erlang.mk/master/erlang.mk
+$ curl -O https://erlang.mk/erlang.mk
 
-Alternatively, just https://raw.githubusercontent.com/ninenines/erlang.mk/master/erlang.mk[click on this link].
+Alternatively, just https://erlang.mk/erlang.mk[click on this link].
 
 Make sure you put the file inside the folder we created previously.
 
@@ -184,6 +184,33 @@ Eshell V7.0  (abort with ^G)
 
 Simple as that!
 
+=== Getting started from scratch
+
+If you already have an application, or you want to have full
+control over what files will be created, you can setup Erlang.mk
+manually.
+
+Erlang.mk is very easy to setup: all that you need to do is to
+create a folder, put Erlang.mk in it, and write a one line
+Makefile containing:
+
+[source,make]
+include erlang.mk
+
+For a step by step:
+
+[source,bash]
+----
+$ mkdir hello_joe
+$ cd hello_joe
+$ curl https://erlang.mk/erlang.mk -o erlang.mk
+$ echo "include erlang.mk" > Makefile
+$ make
+----
+
+From that point onward you can create an `src/` folder or start
+using templates.
+
 === Using spaces instead of tabs
 
 Erlang.mk defaults to tabs when creating files from templates.
@@ -263,7 +290,7 @@ you can always run `make help`:
 ----
 $ make help
 erlang.mk (version 1.2.0-642-gccd2b9f) is distributed under the terms of the ISC License.
-Copyright (c) 2013-2015 Loïc Hoguin <essen@ninenines.eu>
+Copyright (c) 2013-2016 Loïc Hoguin <essen@ninenines.eu>
 
 Usage: [V=1] make [target]...
 

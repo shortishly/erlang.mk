@@ -28,8 +28,18 @@ as an Erlang.mk plugin.
 
 === hexer.mk
 
-An https://github.com/inaka/hexer.mk[Hex plugin] for Erlang.mk.
-Hex is a https://hex.pm/[package manager for the Elixir ecosystem].
+An https://github.com/inaka/hexer.mk[Hex plugin] for Erlang.mk
+using the `hexer` tool.
+
+=== hexpm.mk
+
+Another https://github.com/botsunit/hexpm.mk[Hex plugin] for
+Erlang.mk, with support for Hex dependency operators.
+
+=== jorel
+
+https://github.com/emedia-project/jorel[Jorel] is Just anOther RELease 
+assembler for Erlang/OTP, and is available as an Erlang.mk plugin.
 
 === lfe.mk
 
@@ -46,3 +56,8 @@ http://elixir-lang.org/getting-started/mix-otp/introduction-to-mix.html[Mix].
 === reload.mk
 
 A https://github.com/bullno1/reload.mk[live reload plugin] for Erlang.mk.
+
+=== rust.mk
+
+A https://github.com/goertzenator/rust.mk[plugin] to build https://www.rust-lang.org/[Rust] crates and install binaries into `priv/`.  
+

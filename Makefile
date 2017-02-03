@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2015, Loïc Hoguin <essen@ninenines.eu>
+# Copyright (c) 2013-2016, Loïc Hoguin <essen@ninenines.eu>
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -21,6 +21,7 @@ ERLANG_MK_VERSION = $(shell git describe --tags --dirty)
 .PHONY: all check
 
 all:
+	export LC_COLLATE=C; \
 	awk 'FNR==1 && NR!=1{print ""}1' $(patsubst %,%.mk,$(BUILD_CONFIG)) \
 		| sed 's/^ERLANG_MK_VERSION = .*/ERLANG_MK_VERSION = $(ERLANG_MK_VERSION)/' > $(ERLANG_MK)
 
@@ -58,9 +59,10 @@ search:
 clean:
 	$(MAKE) -C test clean
 	rm -rf doc/guide.pdf doc/html
+	git checkout erlang.mk
 
 docs:
-	$(MAKE) -f core/core.mk -f core/docs.mk -f plugins/asciidoc.mk asciidoc
+	$(MAKE) -f core/core.mk -f core/docs.mk -f plugins/asciidoc.mk asciidoc DEPS=asciideck
 
 up:
 	git clone git@github.com:ninenines/erlang.mk.git gh-pages
