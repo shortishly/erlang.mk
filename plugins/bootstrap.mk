@@ -126,7 +126,7 @@ ENV ARGS_FILE /releases/$${REL_VSN}/vm.args
 ENV TZ=GMT
 
 ENTRYPOINT exec $${BINDIR}/erlexec \
-	-boot_var /lib \
+	-boot_var ERTS_LIB_DIR /lib \
 	-boot $${BOOT} \
 	-noinput \
 	-config $${CONFIG} \
